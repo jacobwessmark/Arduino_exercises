@@ -1,0 +1,95 @@
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+const int switchPin = 6;
+int switchState = 0;
+int prevSwitchState = 0;
+int itemIndex = -1; // Initialize with an invalid index
+String items[] = { // Use std::vector and std::string
+  "Sword of Power",
+  "Magic Potion",
+  "Golden Helmet",
+  "Enchanted Ring",
+  "Diamond Amulet",
+  "Huge boulder",
+  "Extra helper"
+};
+
+const int btnPin = A5; // Define the analog button pin
+const int BuzzPin = 8; // Define the digital speaker pin
+
+int toner[] = {262, 294, 330, 349};
+int threshold = 10; // Adjust this threshold as needed
+
+void setup() {
+  lcd.begin(16, 2);
+  pinMode(switchPin, INPUT);
+  pinMode(btnPin, INPUT);
+  Serial.begin(9600);
+
+  lcd.print("Secret Chest");
+  lcd.setCursor(0, 1);
+  lcd.print("Press button");
+}
+
+void loop() {
+  switchState = digitalRead(switchPin);
+
+  if (switchState != prevSwitchState) {
+    if (switchState == LOW) {
+      // Generate a random index within the valid range
+      itemIndex = random(7);
+      Serial.println(itemIndex);
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("You found:");
+      lcd.setCursor(0, 1);
+      switch(itemIndex){
+        case 0:
+        lcd.print(items[0]);
+        break;
+        case 1:
+        lcd.print(items[1]);
+        break;
+        case 2:
+        lcd.print(items[2]);
+        break;
+        case 3:
+        lcd.print(items[3]);
+        break;
+        case 4:
+        lcd.print(items[4]);
+        break;
+        case 5:
+        lcd.print(items[5]);
+        break;
+        case 6:
+        lcd.print(items[6]);
+        break;
+      }
+    }
+  }
+
+  prevSwitchState = switchState;
+
+  int btnVal = analogRead(btnPin);
+  //Serial.println(btnVal);
+
+  if (btnVal > 1023 - threshold) {
+    tone(BuzzPin, toner[0]);
+  } 
+  else if (btnVal >= 990 && btnVal <= 1010) {
+    tone(BuzzPin, toner[1]);
+  } 
+  else if (btnVal >= 505 && btnVal <= 515) {
+    tone(BuzzPin, toner[2]);
+  } 
+  else if (btnVal >= 5 && btnVal <= 10) {
+    tone(BuzzPin, toner[3]);
+  } 
+  else {
+    noTone(BuzzPin);
+  }
+  delay(450);
+}
