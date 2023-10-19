@@ -1,0 +1,125 @@
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Servo.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET 4
+#define SCREEN_ADDRESS 0x3C 
+#define NUM_BUTTONS 4
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+const int buttons[NUM_BUTTONS] = {2, 3, 4, 5};
+const int buttonTones[NUM_BUTTONS] = {261, 293, 329, 349};
+int oldButtonStates[NUM_BUTTONS] = {1, 1, 1, 1};
+int inputCode[NUM_BUTTONS] = {0, 0, 0, 0};
+
+const int SECRETCODE[NUM_BUTTONS] = {4, 2, 3, 1};
+const int LOCKED = 90;
+const int OPEN = -90;
+
+int buzzPin = 6;
+int tiltPin = 7;
+int greenLED = 8;
+int redLED = 9;
+int servoPin = 10;
+
+Servo myServo;
+bool isLocked = true;
+
+void setup() {
+    Serial.begin(115200);
+    myServo.attach(servoPin);
+    display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+    display.clearDisplay();
+    display.display();
+
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        pinMode(buttons[i], INPUT_PULLUP);
+    }
+
+    pinMode(redLED, OUTPUT);
+    pinMode(greenLED, OUTPUT);
+    pinMode(servoPin, OUTPUT);
+    pinMode(tiltPin, INPUT);
+    pinMode(buzzPin, OUTPUT);
+}
+
+void openChest(int num) {
+    display.clearDisplay();
+    display.display();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(0, 10);
+
+    if (num == 0) {
+        display.println("Opening Chest......");
+    } else if (num == 1) {
+        display.println("You Found: ");
+        display.println("Bludged Sword");
+    }
+
+    display.display();
+}
+
+bool codeChecker(int code[NUM_BUTTONS]) {
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        Serial.print(code[i]);
+        if (code[i] != SECRETCODE[i]) {
+            return false;
+        }
+    }
+    Serial.println();
+    isLocked = false;
+    return true;
+}
+
+void checkButton(int idx) {
+    int val = digitalRead(buttons[idx]);
+    if (val == 1 && oldButtonStates[idx] == 0) {
+        for (int i = 0; i < NUM_BUTTONS - 1; i++) {
+            inputCode[i] = inputCode[i + 1];
+        }
+        inputCode[NUM_BUTTONS - 1] = idx + 1;
+        codeChecker(inputCode);
+        tone(buzzPin, buttonTones[idx], 500);
+    }
+    oldButtonStates[idx] = val;
+}
+
+void loop() {
+    if (!isLocked) {
+        openChest(0);
+        delay(500);
+
+        digitalWrite(greenLED, HIGH);
+        digitalWrite(redLED, LOW);
+        myServo.write(OPEN);
+        
+        tone(buzzPin, 440, 150); delay(150);
+        tone(buzzPin, 494, 150); delay(150);
+        tone(buzzPin, 523, 150); delay(150);
+        tone(buzzPin, 560, 650); delay(150);
+
+        openChest(1);
+        delay(5000);
+        display.clearDisplay();
+        display.display();
+
+        myServo.write(LOCKED);
+        digitalWrite(greenLED, LOW);
+        digitalWrite(redLED, HIGH);
+        isLocked = true;
+    } else {
+        digitalWrite(redLED, HIGH);
+    }
+
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        checkButton(i);
+    }
+
+    delay(100);
+}
