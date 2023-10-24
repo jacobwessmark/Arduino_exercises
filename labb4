@@ -3,12 +3,15 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Servo.h>
+#include <EEPROM.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET 4
 #define SCREEN_ADDRESS 0x3C 
 #define NUM_BUTTONS 4
+#define ADRESS 17
+
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -16,36 +19,41 @@ const int buttons[NUM_BUTTONS] = {2, 3, 4, 5};
 const int buttonTones[NUM_BUTTONS] = {261, 293, 329, 349};
 int oldButtonStates[NUM_BUTTONS] = {1, 1, 1, 1};
 int inputCode[NUM_BUTTONS] = {0, 0, 0, 0};
+int oldProgButtonState = 1;
+int pressCount = 0;
 
-const int SECRETCODE[NUM_BUTTONS] = {4, 2, 3, 1};
+int SECRETCODE[NUM_BUTTONS] = {4, 2, 3, 1};
 const int LOCKED = 90;
 const int OPEN = -90;
 
 int buzzPin = 6;
-int tiltPin = 7;
+int prgPin = 7;
 int greenLED = 8;
 int redLED = 9;
 int servoPin = 10;
 
 Servo myServo;
 bool isLocked = true;
+bool newCodeFlag = false;
 
-void setup() {
-    Serial.begin(115200);
-    myServo.attach(servoPin);
-    display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
-    display.clearDisplay();
-    display.display();
-
-    for (int i = 0; i < NUM_BUTTONS; i++) {
-        pinMode(buttons[i], INPUT_PULLUP);
-    }
-
-    pinMode(redLED, OUTPUT);
-    pinMode(greenLED, OUTPUT);
-    pinMode(servoPin, OUTPUT);
-    pinMode(tiltPin, INPUT);
-    pinMode(buzzPin, OUTPUT);
+void writeIntArrayIntoEEPROM(int address, int numbers[], int arraySize)
+{
+  int addressIndex = address;
+  for (int i = 0; i < arraySize; i++) 
+  {
+    EEPROM.write(addressIndex, numbers[i] >> 8);
+    EEPROM.write(addressIndex + 1, numbers[i] & 0xFF);
+    addressIndex += 2;
+  }
+}
+void readIntArrayFromEEPROM(int address, int numbers[], int arraySize)
+{
+  int addressIndex = address;
+  for (int i = 0; i < arraySize; i++)
+  {
+    numbers[i] = (EEPROM.read(addressIndex) << 8) + EEPROM.read(addressIndex + 1);
+    addressIndex += 2;
+  }
 }
 
 void openChest(int num) {
@@ -67,7 +75,6 @@ void openChest(int num) {
 
 bool codeChecker(int code[NUM_BUTTONS]) {
     for (int i = 0; i < NUM_BUTTONS; i++) {
-        Serial.print(code[i]);
         if (code[i] != SECRETCODE[i]) {
             return false;
         }
@@ -79,16 +86,81 @@ bool codeChecker(int code[NUM_BUTTONS]) {
 
 void checkButton(int idx) {
     int val = digitalRead(buttons[idx]);
+    // idx 4 is progButton
     if (val == 1 && oldButtonStates[idx] == 0) {
+        // last button is our progButton
         for (int i = 0; i < NUM_BUTTONS - 1; i++) {
             inputCode[i] = inputCode[i + 1];
+
         }
+        Serial.print("Before: ");
+        Serial.println(pressCount);
         inputCode[NUM_BUTTONS - 1] = idx + 1;
-        codeChecker(inputCode);
         tone(buzzPin, buttonTones[idx], 500);
+        if (newCodeFlag == false){
+          codeChecker(inputCode);
+        }
+        else {
+          pressCount++; 
+        }
+        Serial.print("After: ");
+        Serial.println(pressCount);
+       
     }
+    // progButton code
+
     oldButtonStates[idx] = val;
 }
+void progCheckButton(int pin){
+  int val = digitalRead(pin);
+  if (val == 1 && oldProgButtonState == 0){
+    newCodeFlag = true;
+    Serial.println("Prog button pressed");
+    while (pressCount < 4){
+      for (int i = 0; i < NUM_BUTTONS; i++) {
+        checkButton(i);
+        delay(10);
+      }
+    }
+    pressCount = 0;
+    for (int i = 0; i < 4; i++){
+      SECRETCODE[i] = inputCode[i];
+      inputCode[i] = 0;
+      Serial.print(SECRETCODE[i]);
+    }
+    Serial.println("");
+    Serial.println("SECRETCODE updated");
+    writeIntArrayIntoEEPROM(ADRESS, SECRETCODE, 4);
+    newCodeFlag = false;
+    
+    }
+ 
+  
+  
+   oldProgButtonState = val;
+}
+
+void setup() {
+    Serial.begin(9600);
+    readIntArrayFromEEPROM(ADRESS, SECRETCODE, 4);
+    Serial.println(SECRETCODE[0]);
+    myServo.attach(servoPin);
+    display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+    display.clearDisplay();
+    display.display();
+
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        pinMode(buttons[i], INPUT_PULLUP);
+    }
+
+    pinMode(redLED, OUTPUT);
+    pinMode(greenLED, OUTPUT);
+    pinMode(servoPin, OUTPUT);
+    pinMode(prgPin, INPUT_PULLUP);
+    pinMode(buzzPin, OUTPUT);
+}
+
+
 
 void loop() {
     if (!isLocked) {
@@ -113,10 +185,10 @@ void loop() {
         digitalWrite(greenLED, LOW);
         digitalWrite(redLED, HIGH);
         isLocked = true;
-    } else {
+    } if (isLocked) {
         digitalWrite(redLED, HIGH);
     }
-
+    progCheckButton(prgPin);
     for (int i = 0; i < NUM_BUTTONS; i++) {
         checkButton(i);
     }
