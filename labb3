@@ -1,12 +1,13 @@
 #include <LiquidCrystal.h>
 
+// Skapar en instans av LiquidCrystal för att styra en LCD-skärm.
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 const int switchPin = 6;
 int switchState = 0;
 int prevSwitchState = 0;
-int itemIndex = -1; // Initialize with an invalid index
-String items[] = { // Use std::vector and std::string
+int itemIndex = -1; // Initialiserar med en ogiltig index
+String items[] = { // Använd std::vector och std::string
   "Sword of Power",
   "Magic Potion",
   "Golden Helmet",
@@ -16,35 +17,50 @@ String items[] = { // Use std::vector and std::string
   "Extra helper"
 };
 
-const int btnPin = A5; // Define the analog button pin
-const int BuzzPin = 8; // Define the digital speaker pin
+const int btnPin = A5; // Definiera den analoga knappens stift
+const int BuzzPin = 8; // Definiera det digitala högtalarstiftet
 
 int toner[] = {262, 294, 330, 349};
-int threshold = 10; // Adjust this threshold as needed
+int threshold = 10; // Justera detta tröskelvärde vid behov
 
+// Setup-funktion som körs en gång vid start.
 void setup() {
+  // Starta LCD-skärmen med 16x2 tecken.
   lcd.begin(16, 2);
+
+  // Konfigurera stift för switchPin som ingång.
   pinMode(switchPin, INPUT);
+
+  // Konfigurera stift för btnPin som ingång.
   pinMode(btnPin, INPUT);
+
+  // Starta seriell kommunikation med baud rate 9600.
   Serial.begin(9600);
 
+  // Visa startmeddelande på LCD-skärmen.
   lcd.print("Secret Chest");
   lcd.setCursor(0, 1);
   lcd.print("Press button");
 }
 
+// Loop-funktion som körs upprepade gånger.
 void loop() {
+  // Läs switchPin:s aktuella tillstånd.
   switchState = digitalRead(switchPin);
 
+  // Om switchPin:s tillstånd ändras
   if (switchState != prevSwitchState) {
+    // Om knappen trycks ner (LOW)
     if (switchState == LOW) {
-      // Generate a random index within the valid range
+      // Generera ett slumpmässigt index inom det giltiga intervallet.
       itemIndex = random(7);
       Serial.println(itemIndex);
       lcd.clear();
       lcd.setCursor(0, 0);
       lcd.print("You found:");
       lcd.setCursor(0, 1);
+
+      // Visa det slumpmässiga föremålet på LCD-skärmen.
       switch(itemIndex){
         case 0:
         lcd.print(items[0]);
@@ -71,11 +87,13 @@ void loop() {
     }
   }
 
+  // Spara switchPin:s tidigare tillstånd.
   prevSwitchState = switchState;
 
+  // Läs av btnPin:s värde.
   int btnVal = analogRead(btnPin);
-  //Serial.println(btnVal);
 
+  // Spela toner beroende på knappens avlästa värde.
   if (btnVal > 1023 - threshold) {
     tone(BuzzPin, toner[0]);
   } 
@@ -91,5 +109,6 @@ void loop() {
   else {
     noTone(BuzzPin);
   }
+  
   delay(450);
 }
