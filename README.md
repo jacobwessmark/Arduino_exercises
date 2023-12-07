@@ -1,3 +1,4 @@
+*(Developed as part of my studies at KYH in Malmö)*
 ### Secret Code Arduino Project
 
 This Arduino project is designed to control a locked chest with a secret code. It uses an Arduino board, an OLED display, buttons, LEDs, a servo motor, and a buzzer. The project is capable of locking and unlocking a chest based on a secret code entered through button presses. When the correct code is entered, the chest opens, and a message is displayed on the OLED screen.
