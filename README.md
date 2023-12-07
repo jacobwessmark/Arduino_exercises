@@ -1,11 +1,10 @@
-Secret Chest Unlocker
-Summary:
+# Secret Code: 
 
-This Arduino project, named "Secret Chest Unlocker," is designed to control a locked chest with a secret code. It uses an Arduino board, an OLED display, buttons, LEDs, a servo motor, and a buzzer. The project is capable of locking and unlocking a chest based on a secret code entered through button presses. When the correct code is entered, the chest opens, and a message is displayed on the OLED screen.
+This Arduino project, is designed to control a locked chest with a secret code. It uses an Arduino board, an OLED display, buttons, LEDs, a servo motor, and a buzzer. The project is capable of locking and unlocking a chest based on a secret code entered through button presses. When the correct code is entered, the chest opens, and a message is displayed on the OLED screen.
 
-Key Features:
+# Key Features:
 
-Secret Code: The project uses a secret code to lock and unlock the chest. The code can be reprogrammed using a "Prog" button.
+The project uses a secret code to lock and unlock the chest. The code can be reprogrammed using a "Prog" button.
 
 OLED Display: An OLED screen provides visual feedback, displaying messages like "Opening chest" and "You found: [item]."
 
@@ -37,8 +36,7 @@ LEDs
 Buzzer
 Unlock the secret chest and discover its contents!
 
-Random Item Generator
-Summary:
+# Random Item Generator
 
 This Arduino project, the "Random Item Generator," is designed to simulate finding random items from a list when pressing a button. It uses an Arduino board, an LCD screen, a button, and a buzzer. When the button is pressed, the project selects a random item from a predefined list and displays it on the LCD screen.
 
